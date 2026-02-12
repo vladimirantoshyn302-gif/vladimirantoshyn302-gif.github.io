@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>IBAN Validator for Bitrix24</title>
+    <style>
+        body { font-family: system-ui, sans-serif; padding: 15px; }
+        .status { padding: 10px; border-radius: 6px; margin: 10px 0; display: none; }
+        .valid { background: #e3fcef; color: #006644; display: block; }
+        .invalid { background: #ffebe6; color: #bf2600; display: block; }
+    </style>
+</head>
+<body>
+    <div id="status-message" class="status"></div>
+
+    <script src="//api.bitrix24.com/api/v1/"></script>
+    <script>
+        BX24.init(async function() {
+            const statusDiv = document.getElementById('status-message');
+            
+            try {
+                // Подключаем официальный валидатор IBAN от Битрикс24
+                const { formatterIban } = await BX24.require('formatter');
+                
+                // Получаем ID текущего лида
+                BX24.placement.call('get', {}, function(result) {
+                    const entityId = result.data.ENTITY_ID;
+                    
+                    // Запрашиваем поле IBAN
+                    BX24.callMethod('crm.lead.get', { id: entityId }, function(res) {
+                        const iban = res.result.UF_CRM_1731259144; // ЗАМЕНИТЕ НА КОД ВАШЕГО ПОЛЯ!
+                        
+                        if (!iban) {
+                            statusDiv.textContent = '⏳ Введите IBAN';
+                            statusDiv.className = 'status';
+                            return;
+                        }
+                        
+                        // ⚡ ОДНА СТРОКА ПРОВЕРКИ - ВСЯ МАГИЯ ТУТ!
+                        const isValid = formatterIban.isValid(iban);
+                        
+                        if (isValid) {
+                            statusDiv.textContent = '✅ IBAN корректен (MOD97 пройден)';
+                            statusDiv.className = 'status valid';
+                        } else {
+                            statusDiv.textContent = '❌ Ошибка: неправильный IBAN';
+                            statusDiv.className = 'status invalid';
+                        }
+                    });
+                });
+                
+            } catch (e) {
+                statusDiv.textContent = '⚠️ Ошибка загрузки валидатора';
+                statusDiv.className = 'status invalid';
+            }
+        });
+    </script>
+</body>
+</html>
